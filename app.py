@@ -1,49 +1,39 @@
-from datetime import datetime
-from flask import Flask, jsonify, request
-from elasticsearch import Elasticsearch
+from flask import Flask, request
+from elasticsearch import Elasticsearch, NotFoundError
+from os import environ
 
-es = Elasticsearch()
+
+ES_ENDPOINT = environ.get("ES_ENDPOINT", "http://elastic:12345678@localhost:9200")
 
 app = Flask(__name__)
-
-@app.route('/', methods=['GET'])
-def index():
-    results = es.get(index='contents', doc_type='title', id='my-new-slug')
-    return jsonify(results['_source'])
+es = Elasticsearch(hosts=[ES_ENDPOINT])
 
 
-@app.route('/insert_data', methods=['POST'])
-def insert_data():
-    slug = request.form['slug']
-    title = request.form['title']
-    content = request.form['content']
+def es_search(index: str, body: dict):
+    try:
+        response = es.search(index=index, body=body).get("hits").get("hits")
+    except NotFoundError:
+        response = {}
 
-    body = {
-        'slug': slug,
-        'title': title,
-        'content': content,
-        'timestamp': datetime.now()
-    }
+    return response
 
-    result = es.index(index='contents', doc_type='title', id=slug, body=body)
 
-    return jsonify(result)
+@app.route("/")
+def hello_geek():
+    return "<h1>Hello There</h2>"
 
-@app.route('/search', methods=['POST'])
+
+@app.route("/country", methods=["GET"])
 def search():
-    keyword = request.form['keyword']
+    body = {}
+    keyword = request.args.get("search")
 
-    body = {
-        "query": {
-            "multi_match": {
-                "query": keyword,
-                "fields": ["content", "title"]
-            }
-        }
-    }
+    if keyword:
+        body = {"query": {"multi_match": {"query": keyword, "fields": ["name", "iso3"], "fuzziness": 2}}}
 
-    res = es.search(index="contents", doc_type="title", body=body)
+    res = es_search(index="country", body=body)
+    return res
 
-    return jsonify(res['hits']['hits'])
 
-app.run(port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
