@@ -1,19 +1,13 @@
 FROM python:3.10-slim
 
-ENV APP_HOME /code
-ENV PYTHONPATH $APP_HOME
-ENV PYTHONUNBUFFERED 1
-ENV ENV_CONFIG 1
-WORKDIR $APP_HOME
+RUN mkdir /app
+WORKDIR /app
 
-COPY ./requirements.txt $APP_HOME/requirements.txt
-
-RUN apt update && apt upgrade -y
-RUN pip install --upgrade pip
+COPY requirements.txt /app
 RUN pip install -r requirements.txt
 
-COPY . $APP_HOME
+COPY . /app
 
-EXPOSE 5000
+EXPOSE 8080
 
-CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+CMD ["python3", "/app/app.py"]
