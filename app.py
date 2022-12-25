@@ -3,10 +3,10 @@ from elasticsearch import Elasticsearch, NotFoundError
 from os import environ
 
 
-ES_ENDPOINT = environ.get("ES_ENDPOINT", "http://localhost:9200")
+ES_ENDPOINT = environ.get("ES_ENDPOINT")
 
 app = Flask(__name__)
-es = Elasticsearch(hosts=[ES_ENDPOINT])
+es = Elasticsearch(ES_ENDPOINT)
 
 
 def es_search(index: str, body: dict):
@@ -25,7 +25,7 @@ def hello_geek():
 
 @app.route("/country/", methods=["GET"])
 def search():
-    body = {}
+    body = {"match_all": {}}
     keyword = request.args.get("search")
 
     if keyword:
